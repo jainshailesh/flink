@@ -69,7 +69,7 @@ public abstract class AbstractKeyedCEPPatternOperator<IN, KEY, OUT, F extends Fu
 
 	private static final long serialVersionUID = -4166778210774160757L;
 
-	private final boolean isProcessingTime;
+	protected final boolean isProcessingTime;
 
 	private final TypeSerializer<IN> inputSerializer;
 
@@ -91,7 +91,7 @@ public abstract class AbstractKeyedCEPPatternOperator<IN, KEY, OUT, F extends Fu
 	 */
 	private long lastWatermark;
 
-	private final EventComparator<IN> comparator;
+	protected final EventComparator<IN> comparator;
 
 	protected final AfterMatchSkipStrategy afterMatchSkipStrategy;
 
@@ -295,12 +295,12 @@ public abstract class AbstractKeyedCEPPatternOperator<IN, KEY, OUT, F extends Fu
 		this.lastWatermark = timestamp;
 	}
 
-	private NFA<IN> getNFA() throws IOException {
+	public NFA<IN> getNFA() throws IOException {
 		NFA<IN> nfa = nfaOperatorState.value();
 		return nfa != null ? nfa : nfaFactory.createNFA();
 	}
 
-	private void updateNFA(NFA<IN> nfa) throws IOException {
+	protected void updateNFA(NFA<IN> nfa) throws IOException {
 		if (nfa.isNFAChanged()) {
 			if (nfa.isEmpty()) {
 				nfaOperatorState.clear();
@@ -327,7 +327,7 @@ public abstract class AbstractKeyedCEPPatternOperator<IN, KEY, OUT, F extends Fu
 	 * @param event The current event to be processed
 	 * @param timestamp The timestamp of the event
 	 */
-	private void processEvent(NFA<IN> nfa, IN event, long timestamp)  {
+    protected void processEvent(NFA<IN> nfa, IN event, long timestamp)  {
 		Tuple2<Collection<Map<String, List<IN>>>, Collection<Tuple2<Map<String, List<IN>>, Long>>> patterns =
 			nfa.process(event, timestamp, afterMatchSkipStrategy);
 
