@@ -6,6 +6,7 @@ import org.apache.flink.cep.PatternSelectFunction;
 import org.apache.flink.cep.nfa.AfterMatchSkipStrategy;
 import org.apache.flink.cep.nfa.compiler.NFACompiler;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.log4j.Logger;
 
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,8 @@ public class SelectCepOperatorMixedTimeApproach<IN, KEY, OUT>
              PatternSelectFunction<IN, OUT> function) {
         super(inputSerializer, isProcessingTime, nfaFactory, comparator,
                 afterMatchSkipStrategy, function);
+        Logger.getRootLogger().info("Creating " +
+                "SelectCepOperatorMixedTimeApproach operator.");
     }
 
     //Copied from SelectCepOperator

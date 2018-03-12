@@ -7,6 +7,7 @@ import org.apache.flink.cep.nfa.AfterMatchSkipStrategy;
 import org.apache.flink.cep.nfa.NFA;
 import org.apache.flink.cep.nfa.compiler.NFACompiler;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.log4j.Logger;
 
 /**
  * Abstract CEP pattern operator for a keyed input stream, this operator when
@@ -36,6 +37,8 @@ public abstract class AbstractKeyedCEPPatternMixedTimeApproachOperator<IN,
                 NFA<IN> nfa = getNFA();
                 //We'll assume for now that the elements will always come in
                 // order
+                Logger.getRootLogger().debug("Processing element " +
+                        element.toString() + "using mixed approach");
                 processEvent(nfa, element.getValue(), element.getTimestamp());
                 updateNFA(nfa);
             } else {
