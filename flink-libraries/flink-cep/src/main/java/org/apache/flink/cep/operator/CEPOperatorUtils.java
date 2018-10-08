@@ -43,6 +43,55 @@ import org.apache.flink.util.OutputTag;
  */
 public class CEPOperatorUtils {
 
+
+	/**
+	 * Creates a data stream containing results of {@link PatternSelectFunction} to fully matching event patterns.
+	 *
+	 * @param inputStream stream of input events
+	 * @param pattern pattern to be search for in the stream
+	 * @param selectFunction function to be applied to matching event sequences
+	 * @param outTypeInfo output TypeInformation of selectFunction
+	 * @param <IN> type of input events
+	 * @param <OUT> type of output events
+	 * @return Data stream containing fully matched event sequence with applied {@link PatternSelectFunction}
+	 */
+	public static <IN, OUT> SingleOutputStreamOperator<OUT>
+	createPatternStreamMixedApproach(
+		final DataStream<IN> inputStream,
+		final Pattern<IN, ?> pattern,
+		final EventComparator<IN> comparator,
+		final PatternSelectFunction<IN, OUT> selectFunction,
+		final TypeInformation<OUT> outTypeInfo,
+		final OutputTag<IN> lateDataOutputTag) {
+		return createPatternStream(inputStream, pattern, outTypeInfo, false, comparator, new OperatorBuilder<IN, OUT>() {
+			@Override
+			public OneInputStreamOperator<IN, OUT> build(
+				TypeSerializer<IN> inputSerializer,
+				boolean isProcessingTime,
+				NFACompiler.NFAFactory<IN> nfaFactory,
+				EventComparator<IN> comparator,
+				AfterMatchSkipStrategy skipStrategy) {
+				return new SelectCepOperatorMixedTimeApproach<>(
+					inputSerializer,
+					isProcessingTime,
+					nfaFactory,
+					comparator,
+					skipStrategy,
+					selectFunction,
+					lateDataOutputTag
+				);
+			}
+			@Override
+			public String getKeyedOperatorName() {
+				return "SelectCepOperatorMixedTime";
+			}
+			@Override
+			public String getOperatorName() {
+				return "SelectCepOperatorMixedTime";
+			}
+		});
+	}
+
 	/**
 	 * Creates a data stream containing results of {@link PatternSelectFunction} to fully matching event patterns.
 	 *
