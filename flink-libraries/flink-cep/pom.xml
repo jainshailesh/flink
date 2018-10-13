@@ -30,9 +30,10 @@ under the License.
         <relativePath>..</relativePath>
     </parent>
 
-    <artifactId>flink-cep_${scala.binary.version}</artifactId>
-    <name>flink-cep</name>
-    <packaging>jar</packaging>
+
+	<artifactId>stellapps-flink-cep_${scala.binary.version}</artifactId>
+	<name>stellapps-flink-cep</name>
+	<packaging>jar</packaging>
 
     <dependencies>
 
@@ -103,6 +104,13 @@ under the License.
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
+		</plugins>
     </build>
 </project>

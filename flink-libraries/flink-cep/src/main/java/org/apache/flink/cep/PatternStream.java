@@ -60,16 +60,30 @@ public class PatternStream<T> {
 	 */
 	private OutputTag<T> lateDataOutputTag;
 
+
+	private boolean useMixedTimeOperator;
+
+	PatternStream(final DataStream<T> inputStream, final Pattern<T, ?>
+		pattern, boolean useMixedTimeOperator) {
+		this.inputStream = inputStream;
+		this.pattern = pattern;
+		this.useMixedTimeOperator = useMixedTimeOperator;
+		this.comparator = null;
+	}
+
+
 	PatternStream(final DataStream<T> inputStream, final Pattern<T, ?> pattern) {
 		this.inputStream = inputStream;
 		this.pattern = pattern;
 		this.comparator = null;
+		this.useMixedTimeOperator = false;
 	}
 
 	PatternStream(final DataStream<T> inputStream, final Pattern<T, ?> pattern, final EventComparator<T> comparator) {
 		this.inputStream = inputStream;
 		this.pattern = pattern;
 		this.comparator = comparator;
+		this.useMixedTimeOperator = false;
 	}
 
 	public Pattern<T, ?> getPattern() {
@@ -135,6 +149,11 @@ public class PatternStream<T> {
 	 *         function.
 	 */
 	public <R> SingleOutputStreamOperator<R> select(final PatternSelectFunction<T, R> patternSelectFunction, TypeInformation<R> outTypeInfo) {
+		if (this.useMixedTimeOperator) {
+			return CEPOperatorUtils.createPatternStreamMixedApproach
+				(inputStream, pattern, comparator, clean(patternSelectFunction), outTypeInfo,
+					lateDataOutputTag);
+		}
 		return CEPOperatorUtils.createPatternStream(inputStream, pattern, comparator, clean(patternSelectFunction), outTypeInfo, lateDataOutputTag);
 	}
 

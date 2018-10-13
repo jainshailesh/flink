@@ -74,7 +74,7 @@ public abstract class AbstractKeyedCEPPatternOperator<IN, KEY, OUT, F extends Fu
 
 	private static final long serialVersionUID = -4166778210774160757L;
 
-	private final boolean isProcessingTime;
+	protected final boolean isProcessingTime;
 
 	private final TypeSerializer<IN> inputSerializer;
 
@@ -99,7 +99,7 @@ public abstract class AbstractKeyedCEPPatternOperator<IN, KEY, OUT, F extends Fu
 	 */
 	private long lastWatermark;
 
-	private final EventComparator<IN> comparator;
+	protected final EventComparator<IN> comparator;
 
 	/**
 	 * {@link OutputTag} to use for late arriving events. Elements with timestamp smaller than
@@ -346,12 +346,12 @@ public abstract class AbstractKeyedCEPPatternOperator<IN, KEY, OUT, F extends Fu
 		this.lastWatermark = timestamp;
 	}
 
-	private NFAState getNFAState() throws IOException {
+	protected NFAState getNFAState() throws IOException {
 		NFAState nfaState = computationStates.value();
 		return nfaState != null ? nfaState : nfa.createInitialNFAState();
 	}
 
-	private void updateNFA(NFAState nfaState) throws IOException {
+	protected void updateNFA(NFAState nfaState) throws IOException {
 		if (nfaState.isStateChanged()) {
 			nfaState.resetStateChanged();
 			computationStates.update(nfaState);
@@ -374,7 +374,7 @@ public abstract class AbstractKeyedCEPPatternOperator<IN, KEY, OUT, F extends Fu
 	 * @param event The current event to be processed
 	 * @param timestamp The timestamp of the event
 	 */
-	private void processEvent(NFAState nfaState, IN event, long timestamp) throws Exception {
+	protected void processEvent(NFAState nfaState, IN event, long timestamp) throws Exception {
 		Collection<Map<String, List<IN>>> patterns =
 				nfa.process(partialMatches, nfaState, event, timestamp, afterMatchSkipStrategy);
 		processMatchedSequences(patterns, timestamp);
@@ -384,7 +384,7 @@ public abstract class AbstractKeyedCEPPatternOperator<IN, KEY, OUT, F extends Fu
 	 * Advances the time for the given NFA to the given timestamp. This means that no more events with timestamp
 	 * <b>lower</b> than the given timestamp should be passed to the nfa, This can lead to pruning and timeouts.
 	 */
-	private void advanceTime(NFAState nfaState, long timestamp) throws Exception {
+	protected void advanceTime(NFAState nfaState, long timestamp) throws Exception {
 		Collection<Tuple2<Map<String, List<IN>>, Long>> timedOut =
 			nfa.advanceTime(partialMatches, nfaState, timestamp);
 		processTimedOutSequences(timedOut, timestamp);

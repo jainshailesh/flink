@@ -716,4 +716,153 @@ public class CEPITCase extends AbstractTestBase {
 
 		assertEquals(expected, resultList);
 	}
+
+	@Test
+	public void testSimpleKeyedPatternMixedTimeWindowCase() throws Exception {
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
+		env.setParallelism(1);
+		// (Event, timestamp)
+		DataStream<Event> input = env.fromElements(
+			Tuple2.of(new Event(1, "start", 1.0), 5L),
+			Tuple2.of(new Event(2, "start", 1.0), 5L),
+			Tuple2.of(new Event(3, "start", 1.0), 5L),
+			Tuple2.of(new Event(1, "middle", 1.0), 7L),
+			Tuple2.of(new Event(2, "middle", 1.0), 7L),
+			Tuple2.of(new Event(3, "middle", 7.0), 7L),
+			Tuple2.of(new Event(1, "end", 1.0), 9L),
+			Tuple2.of(new Event(2, "end", 1.0), 15L),
+			Tuple2.of(new Event(3, "end", 7.0), 10L)
+		).assignTimestampsAndWatermarks(new AssignerWithPunctuatedWatermarks<Tuple2<Event, Long>>() {
+			@Override
+			public long extractTimestamp(Tuple2<Event, Long> element, long currentTimestamp) {
+				return element.f1;
+			}
+			@Override
+			public Watermark checkAndGetNextWatermark(Tuple2<Event, Long> lastElement, long extractedTimestamp) {
+				return new Watermark(lastElement.f1 - 5);
+			}
+		}).map(new MapFunction<Tuple2<Event, Long>, Event>() {
+			@Override
+			public Event map(Tuple2<Event, Long> value) throws Exception {
+				return value.f0;
+			}
+		}).keyBy(new KeySelector<Event, Integer>() {
+			@Override
+			public Integer getKey(Event value) throws Exception {
+				return value.getId();
+			}
+		});
+		Pattern<Event, ?> pattern = Pattern.<Event>begin("start").where(new SimpleCondition<Event>() {
+			@Override
+			public boolean filter(Event value) throws Exception {
+				return value.getName().equals("start");
+			}
+		}).followedBy("middle").where(new SimpleCondition<Event>() {
+			@Override
+			public boolean filter(Event value) throws Exception {
+				return value.getName().equals("middle");
+			}
+		}).followedBy("end").where(new SimpleCondition<Event>() {
+			@Override
+			public boolean filter(Event value) throws Exception {
+				return value.getName().equals("end");
+			}
+		}).within(Time.milliseconds(7L));
+		DataStream<String> result = CEP.pattern(input, pattern, true).select(
+			new PatternSelectFunction<Event, String>() {
+				@Override
+				public String select(Map<String, List<Event>> pattern) {
+					StringBuilder builder = new StringBuilder();
+					builder.append(pattern.get("start").get(0).getId()).append(",")
+						.append(pattern.get("middle").get(0).getId()).append(",")
+						.append(pattern.get("end").get(0).getId());
+					return builder.toString();
+				}
+			}
+		);
+
+		List<String> resultList = new ArrayList<>();
+
+		DataStreamUtils.collect(result).forEachRemaining(resultList::add);
+		List<String> expected = Arrays.asList(
+			"1,1,1",
+			"3,3,3"
+		);
+		assertEquals(expected, resultList);
+	}
+
+	@Test
+	public void testSimpleKeyedPatternMixedTimeNotWindowCase() throws
+		Exception {
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
+		env.setParallelism(1);
+		// (Event, timestamp)
+		DataStream<Event> input = env.fromElements(
+			Tuple2.of(new Event(1, "start", 1.0), 5L),
+			Tuple2.of(new Event(2, "start", 1.0), 5L),
+			Tuple2.of(new Event(3, "start", 1.0), 5L),
+			Tuple2.of(new Event(1, "middle", 1.0), 7L),
+			Tuple2.of(new Event(2, "middle", 1.0), 17L),
+			Tuple2.of(new Event(1, "end", 1.0), 9L),
+			Tuple2.of(new Event(2, "end", 1.0), 18L),
+			Tuple2.of(new Event(3, "end", 7.0), 11L)
+		).assignTimestampsAndWatermarks(new AssignerWithPunctuatedWatermarks<Tuple2<Event, Long>>() {
+			@Override
+			public long extractTimestamp(Tuple2<Event, Long> element, long currentTimestamp) {
+				return element.f1;
+			}
+			@Override
+			public Watermark checkAndGetNextWatermark(Tuple2<Event, Long> lastElement, long extractedTimestamp) {
+				return new Watermark(lastElement.f1 - 5);
+			}
+		}).map(new MapFunction<Tuple2<Event, Long>, Event>() {
+			@Override
+			public Event map(Tuple2<Event, Long> value) throws Exception {
+				return value.f0;
+			}
+		}).keyBy(new KeySelector<Event, Integer>() {
+			@Override
+			public Integer getKey(Event value) throws Exception {
+				return value.getId();
+			}
+		});
+		Pattern<Event, ?> pattern = Pattern.<Event>begin("start").where(new SimpleCondition<Event>() {
+			@Override
+			public boolean filter(Event value) throws Exception {
+				return value.getName().equals("start");
+			}
+		}).notFollowedBy("middle").where(new SimpleCondition<Event>() {
+			@Override
+			public boolean filter(Event value) throws Exception {
+				return value.getName().equals("middle");
+			}
+		})
+			.followedBy("end").where(new SimpleCondition<Event>() {
+				@Override
+				public boolean filter(Event value) throws Exception {
+					return value.getName().equals("end");
+				}
+			}).within(Time.milliseconds(7L));
+		DataStream<String> result = CEP.pattern(input, pattern, true).select(
+			new PatternSelectFunction<Event, String>() {
+				@Override
+				public String select(Map<String, List<Event>> pattern) {
+					StringBuilder builder = new StringBuilder();
+					builder.append(pattern.get("start").get(0).getId()).append(",")
+						.append(pattern.get("end").get(0).getId());
+					return builder.toString();
+				}
+			}
+		);
+
+		List<String> resultList = new ArrayList<>();
+
+		DataStreamUtils.collect(result).forEachRemaining(resultList::add);
+		List<String> expected = Arrays.asList(
+			"3,3"
+		);
+		assertEquals(expected, resultList);
+	}
 }
